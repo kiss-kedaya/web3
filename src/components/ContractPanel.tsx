@@ -29,7 +29,7 @@ export const ContractPanel: React.FC<ContractPanelProps> = ({
     try {
       const parsedAbi = JSON.parse(abi);
       const methods = parsedAbi.filter(
-        (item: any) => item.type === "function"
+        (item: { type?: string }) => item.type === "function"
       ) as ContractMethod[];
       setContractMethods(methods);
       setSelectedMethod(null);
