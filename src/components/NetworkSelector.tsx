@@ -27,7 +27,6 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({
         disabled={disabled}
         className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
       >
-        <option value="">选择网络</option>
         {NETWORKS.map((network) => (
           <option key={network.chainId} value={network.chainId}>
             {network.name}

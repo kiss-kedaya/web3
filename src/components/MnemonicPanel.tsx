@@ -192,7 +192,7 @@ export const MnemonicPanel: React.FC<MnemonicPanelProps> = ({
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
         <div className="flex items-center space-x-2 mb-4">
           <Plus className="text-blue-400" size={20} />
-          <h3 className="text-lg font-semibold text-white">批量生成钱包</h3>
+          <h3 className="text-lg font-semibold text-white">助记词生成钱包</h3>
         </div>
 
         <div className="space-y-4">

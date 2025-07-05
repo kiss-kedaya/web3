@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { NetworkConfig } from '../types/web3';
-import { NetworkSelector } from './NetworkSelector';
-import { PrivateKeyInput } from './PrivateKeyInput';
-import { isValidPrivateKey } from '../utils/crypto';
-import { getDefaultNetwork, NETWORKS } from '../utils/networks';
-import { Wallet, WifiOff, Wifi, Settings } from 'lucide-react';
+import React, { useState } from "react";
+import { NetworkConfig } from "../types/web3";
+import { NetworkSelector } from "./NetworkSelector";
+import { PrivateKeyInput } from "./PrivateKeyInput";
+import { isValidPrivateKey } from "../utils/crypto";
+import { getDefaultNetwork, NETWORKS } from "../utils/networks";
+import { Wallet, WifiOff, Wifi, Settings } from "lucide-react";
 
 interface ConnectionPanelProps {
   isConnected: boolean;
@@ -19,11 +19,13 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
   currentNetwork,
   onConnect,
   onDisconnect,
-  onSwitchNetwork
+  onSwitchNetwork,
 }) => {
-  const [privateKey, setPrivateKey] = useState('');
-  const [selectedNetwork, setSelectedNetwork] = useState<NetworkConfig | null>(getDefaultNetwork());
-  const [customRpcUrl, setCustomRpcUrl] = useState('');
+  const [privateKey, setPrivateKey] = useState("");
+  const [selectedNetwork, setSelectedNetwork] = useState<NetworkConfig | null>(
+    getDefaultNetwork()
+  );
+  const [customRpcUrl, setCustomRpcUrl] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [showNetworkSelector, setShowNetworkSelector] = useState(false);
 
@@ -38,7 +40,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
 
       await onConnect(privateKey, networkToUse);
     } catch (error) {
-      console.error('连接失败:', error);
+      console.error("连接失败:", error);
     } finally {
       setIsConnecting(false);
     }
@@ -46,8 +48,8 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
 
   const handleDisconnect = () => {
     onDisconnect();
-    setPrivateKey('');
-    setCustomRpcUrl('');
+    setPrivateKey("");
+    setCustomRpcUrl("");
   };
 
   const handleSwitchNetwork = async (network: NetworkConfig) => {
@@ -55,7 +57,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
       await onSwitchNetwork(network);
       setShowNetworkSelector(false);
     } catch (error) {
-      console.error('网络切换失败:', error);
+      console.error("网络切换失败:", error);
     }
   };
 
@@ -74,7 +76,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
             断开连接
           </button>
         </div>
-        
+
         {currentNetwork && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -83,7 +85,9 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: currentNetwork.color }}
                 />
-                <span className="text-white font-medium">{currentNetwork.name}</span>
+                <span className="text-white font-medium">
+                  {currentNetwork.name}
+                </span>
               </div>
               <button
                 onClick={() => setShowNetworkSelector(!showNetworkSelector)}
@@ -96,15 +100,14 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
 
             {showNetworkSelector && (
               <div className="bg-gray-700 rounded-md p-3 space-y-2">
-                <p className="text-xs text-gray-400 mb-2">选择网络:</p>
                 {NETWORKS.map((network) => (
                   <button
                     key={network.chainId}
                     onClick={() => handleSwitchNetwork(network)}
                     className={`w-full flex items-center space-x-2 px-2 py-1 text-left rounded text-sm transition-colors ${
                       currentNetwork.chainId === network.chainId
-                        ? 'bg-gray-600 text-white'
-                        : 'hover:bg-gray-600 text-gray-300'
+                        ? "bg-gray-600 text-white"
+                        : "hover:bg-gray-600 text-gray-300"
                     }`}
                   >
                     <div
@@ -135,20 +138,20 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
         <WifiOff className="text-gray-400" size={20} />
         <h3 className="text-lg font-semibold text-white">连接钱包</h3>
       </div>
-      
+
       <div className="space-y-4">
         <PrivateKeyInput
           value={privateKey}
           onChange={setPrivateKey}
           disabled={isConnecting}
         />
-        
+
         <NetworkSelector
           selectedNetwork={selectedNetwork}
           onNetworkChange={setSelectedNetwork}
           disabled={isConnecting}
         />
-        
+
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-300">
             自定义 RPC URL（可选）
@@ -162,14 +165,19 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
           />
         </div>
-        
+
         <button
           onClick={handleConnect}
-          disabled={!privateKey || !selectedNetwork || !isValidPrivateKey(privateKey) || isConnecting}
+          disabled={
+            !privateKey ||
+            !selectedNetwork ||
+            !isValidPrivateKey(privateKey) ||
+            isConnecting
+          }
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
           <Wallet size={18} />
-          <span>{isConnecting ? '连接中...' : '连接'}</span>
+          <span>{isConnecting ? "连接中..." : "连接"}</span>
         </button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Wallet, RefreshCw, Copy, ExternalLink } from "lucide-react";
 import { ethers } from "ethers";
 import { shortenAddress } from "../utils/crypto";
@@ -21,7 +21,7 @@ export const WalletPanel: React.FC<WalletPanelProps> = ({
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const loadBalance = async () => {
+  const loadBalance = useCallback(async () => {
     if (!wallet || !isConnected) return;
 
     setIsLoadingBalance(true);
@@ -33,7 +33,7 @@ export const WalletPanel: React.FC<WalletPanelProps> = ({
     } finally {
       setIsLoadingBalance(false);
     }
-  };
+  }, [wallet, isConnected, onGetBalance]);
 
   const copyAddress = () => {
     if (wallet) {
@@ -45,7 +45,7 @@ export const WalletPanel: React.FC<WalletPanelProps> = ({
 
   useEffect(() => {
     loadBalance();
-  }, [wallet, isConnected, onGetBalance]);
+  }, [wallet, isConnected, onGetBalance, loadBalance]);
 
   if (!wallet || !isConnected) {
     return (
