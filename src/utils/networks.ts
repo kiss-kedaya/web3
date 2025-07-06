@@ -9,7 +9,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'BNB',
     blockExplorer: 'https://www.oklink.com/zh-hans/bsc',
     color: '#F3BA2F',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/bsc.svg'
   },
   {
     name: 'Ethereum',
@@ -18,7 +19,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/ethereum',
     color: '#627EEA',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/ethereum.svg'
   },
   {
     name: 'Polygon',
@@ -27,7 +29,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'MATIC',
     blockExplorer: 'https://www.oklink.com/zh-hans/polygon',
     color: '#8247E5',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/polygon.svg'
   },
   {
     name: 'Arbitrum One',
@@ -36,7 +39,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/arbitrum-one',
     color: '#28A0F0',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/arbitrum.svg'
   },
   {
     name: 'OP Mainnet',
@@ -45,7 +49,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/optimism',
     color: '#FF0420',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/optimism.svg'
   },
   {
     name: 'Base',
@@ -54,7 +59,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/base',
     color: '#0052FF',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/base.svg'
   },
   {
     name: 'Avalanche-C',
@@ -63,7 +69,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'AVAX',
     blockExplorer: 'https://www.oklink.com/zh-hans/avalanche',
     color: '#E84142',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/avalanche.svg'
   },
   {
     name: 'Fantom',
@@ -72,7 +79,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'FTM',
     blockExplorer: 'https://www.oklink.com/zh-hans/fantom',
     color: '#1969FF',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/fantom.svg'
   },
   {
     name: 'zkSync Era',
@@ -81,7 +89,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/zksync-era',
     color: '#8C8DFC',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/zksync.svg'
   },
   {
     name: 'Polygon zkEVM',
@@ -90,7 +99,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/polygon-zkevm',
     color: '#8247E5',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/polygon-zkevm.svg'
   },
   {
     name: 'Linea',
@@ -99,7 +109,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/linea',
     color: '#121212',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/linea.svg'
   },
   {
     name: 'Scroll',
@@ -108,7 +119,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/scroll',
     color: '#FFEEDA',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/ethereum.svg'
   },
   {
     name: 'Manta Pacific',
@@ -117,7 +129,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/manta',
     color: '#000000',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/ethereum.svg'
   },
   {
     name: 'opBNB Mainnet',
@@ -126,7 +139,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'BNB',
     blockExplorer: 'https://www.oklink.com/zh-hans/opbnb',
     color: '#F3BA2F',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/bsc.svg'
   },
   // 测试网络
   {
@@ -136,7 +150,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'ETH',
     blockExplorer: 'https://www.oklink.com/zh-hans/sepolia',
     color: '#627EEA',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/sepolia.svg'
   },
   {
     name: 'Mumbai Testnet',
@@ -145,7 +160,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'MATIC',
     blockExplorer: 'https://www.oklink.com/zh-hans/mumbai',
     color: '#8247E5',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/mumbai.svg'
   },
   {
     name: 'Amoy Testnet',
@@ -154,7 +170,8 @@ export const NETWORKS: NetworkConfig[] = [
     symbol: 'MATIC',
     blockExplorer: 'https://www.oklink.com/zh-hans/amoy',
     color: '#8247E5',
-    type: 'evm'
+    type: 'evm',
+    iconUrl: '/icons/networks/amoy.svg'
   }
 ];
 

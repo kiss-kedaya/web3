@@ -6,6 +6,7 @@ export interface NetworkConfig {
   blockExplorer: string;
   color: string;
   type: 'evm';
+  iconUrl?: string;
 }
 
 export interface Transaction {
