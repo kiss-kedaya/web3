@@ -77,3 +77,80 @@ export interface WalletBalance {
   }>;
 }
 
+export interface TransactionLog {
+  address: string;
+  topics: string[];
+  data: string;
+  blockNumber: number;
+  transactionHash: string;
+  transactionIndex: number;
+  blockHash: string;
+  logIndex: number;
+  removed: boolean;
+}
+
+export interface TransactionHistory {
+  hash: string;
+  blockNumber: number;
+  blockHash: string;
+  transactionIndex: number;
+  from: string;
+  to: string | null;
+  value: string;
+  gasPrice: string;
+  gasUsed: string;
+  gasLimit: string;
+  nonce: number;
+  data: string;
+  timestamp: number;
+  status: number;
+  logs: TransactionLog[];
+  contractAddress?: string;
+  methodId?: string;
+  methodName?: string;
+  decodedInput?: Record<string, unknown>;
+  decodedLogs?: Array<{
+    name: string;
+    signature: string;
+    topic: string;
+    args: Record<string, unknown>;
+  }>;
+  // OKX API 特有字段
+  fee?: number; // 手续费
+  realValue?: number; // 实际价值变化
+}
+
+// 详细交易信息接口
+export interface TransactionDetail {
+  // 基础信息
+  hash: string;
+  blockNumber: number;
+  blockHash: string;
+  from: string;
+  to: string | null;
+  value: string;
+  timestamp: number;
+  status: number;
+
+  // 详细信息
+  confirm: number; // 确认数
+  legalRate?: string; // 法币汇率
+  valueRaw: string; // 原始值
+  gasUsed: string;
+  gasLimit: string;
+  gasPrice: string;
+  index: number; // 交易在区块中的索引
+  inputHex: string; // 交易输入数据
+  tokenTransferCount: number; // 代币转账数量
+  logCount: number; // 日志数量
+  internalTranCount: number; // 内部交易数量
+  deploymentContract: boolean; // 是否为合约部署
+  fee?: number; // 手续费
+  realValue?: number; // 实际价值变化
+
+  // 可选的额外字段
+  nonce?: number;
+  methodId?: string;
+  methodName?: string;
+}
+

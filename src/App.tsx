@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Wallet, Send, Code, FileSignature, Activity, Key, ChevronDown } from 'lucide-react';
+import { Zap, Wallet, Send, Code, FileSignature, Activity, Key, ChevronDown, History } from 'lucide-react';
 import { useWeb3 } from './hooks/useWeb3';
 import { ConnectionPanel } from './components/ConnectionPanel';
 import { WalletPanel } from './components/WalletPanel';
@@ -8,7 +8,8 @@ import { ContractPanel } from './components/ContractPanel';
 import { SignaturePanel } from './components/SignaturePanel';
 import { ActivityLog } from './components/ActivityLog';
 import { MnemonicPanel } from './components/MnemonicPanel';
-import { NetworkConfig } from './types/web3';
+import { TransactionHistory } from './components/TransactionHistory';
+import { NetworkConfig, Transaction } from './types/web3';
 import { NETWORKS } from './utils/networks';
 
 function App() {
@@ -66,6 +67,21 @@ function App() {
     }
   };
 
+  // 包装连接函数以匹配接口
+  const handleConnect = async (privateKey: string, network: NetworkConfig) => {
+    await connectWallet(privateKey, network);
+  };
+
+  // 包装网络切换函数以匹配接口
+  const handleSwitchNetwork = async (network: NetworkConfig) => {
+    await switchNetwork(network);
+  };
+
+  // 包装发送交易函数以匹配接口
+  const handleSendTransaction = async (transaction: Transaction) => {
+    await sendTransaction(transaction);
+  };
+
   // 点击外部关闭下拉菜单
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -88,6 +104,7 @@ function App() {
     { id: 'wallet', label: '钱包管理', icon: Wallet },
     { id: 'mnemonic', label: '助记词', icon: Key },
     { id: 'transaction', label: '交易', icon: Send },
+    { id: 'history', label: '交易历史', icon: History },
     { id: 'contract', label: '合约', icon: Code },
     { id: 'signature', label: '签名', icon: FileSignature },
     { id: 'activity', label: '活动', icon: Activity }
@@ -107,7 +124,7 @@ function App() {
       case 'mnemonic':
         return (
           <MnemonicPanel
-            onConnectWallet={connectWallet}
+            onConnectWallet={handleConnect}
             currentNetwork={currentNetwork}
           />
         );
@@ -115,9 +132,18 @@ function App() {
       case 'transaction':
         return (
           <TransactionPanel
-            onSendTransaction={sendTransaction}
+            onSendTransaction={handleSendTransaction}
             onEstimateGas={estimateGas}
             gasPrice={gasPrice}
+            isConnected={isConnected}
+          />
+        );
+      case 'history':
+        return (
+          <TransactionHistory
+            wallet={wallet}
+            provider={provider}
+            currentNetwork={currentNetwork}
             isConnected={isConnected}
           />
         );
@@ -226,9 +252,9 @@ function App() {
             <ConnectionPanel
               isConnected={isConnected}
               currentNetwork={currentNetwork}
-              onConnect={connectWallet}
+              onConnect={handleConnect}
               onDisconnect={disconnect}
-              onSwitchNetwork={switchNetwork}
+              onSwitchNetwork={handleSwitchNetwork}
             />
           </div>
 
