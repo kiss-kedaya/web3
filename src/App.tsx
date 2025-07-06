@@ -9,6 +9,7 @@ import { SignaturePanel } from './components/SignaturePanel';
 import { ActivityLog } from './components/ActivityLog';
 import { MnemonicPanel } from './components/MnemonicPanel';
 import { TransactionHistory } from './components/TransactionHistory';
+import { NetworkIcon } from './components/NetworkIcon';
 import { NetworkConfig, Transaction } from './types/web3';
 import { NETWORKS } from './utils/networks';
 
@@ -195,10 +196,7 @@ function App() {
                     }}
                     className="flex items-center space-x-2 px-3 py-1 bg-gray-700 rounded-full hover:bg-gray-600 transition-colors cursor-pointer"
                   >
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: currentNetwork.color }}
-                    />
+                    <NetworkIcon network={currentNetwork} size={16} />
                     <span className="text-sm text-gray-300">{currentNetwork.name}</span>
                     <ChevronDown size={14} className="text-gray-400" />
                   </button>
@@ -219,10 +217,7 @@ function App() {
                             currentNetwork.chainId === network.chainId ? 'bg-gray-700' : ''
                           }`}
                         >
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: network.color }}
-                          />
+                          <NetworkIcon network={network} size={14} />
                           <span className="text-sm text-gray-300">{network.name}</span>
                         </button>
                       ))}

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { NetworkConfig } from "../types/web3";
 import { NetworkSelector } from "./NetworkSelector";
+import { NetworkIcon } from "./NetworkIcon";
 import { PrivateKeyInput } from "./PrivateKeyInput";
 import { isValidPrivateKey } from "../utils/crypto";
 import { getDefaultNetwork, NETWORKS } from "../utils/networks";
@@ -81,10 +82,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: currentNetwork.color }}
-                />
+                <NetworkIcon network={currentNetwork} size={16} />
                 <span className="text-white font-medium">
                   {currentNetwork.name}
                 </span>
@@ -110,10 +108,7 @@ export const ConnectionPanel: React.FC<ConnectionPanelProps> = ({
                         : "hover:bg-gray-600 text-gray-300"
                     }`}
                   >
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: network.color }}
-                    />
+                    <NetworkIcon network={network} size={14} />
                     <span>{network.name}</span>
                   </button>
                 ))}

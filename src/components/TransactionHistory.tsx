@@ -13,10 +13,13 @@ import {
   TransactionHistory as TransactionHistoryType,
   TransactionDetail,
   NetworkConfig,
+  TransactionLog,
 } from "../types/web3";
 import { ethers } from "ethers";
 import { getExplorerUrl } from "../utils/networks";
 import { TransactionHistoryService } from "../services/transactionHistoryService";
+import { TransactionLogsViewer } from "./TransactionLogsViewer";
+import { InputDataViewer } from "./InputDataViewer";
 
 interface TransactionHistoryProps {
   wallet: ethers.Wallet | null;
@@ -48,14 +51,20 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   const [showTokenTransfers, setShowTokenTransfers] = useState(false);
   const [apiErrors, setApiErrors] = useState<string[]>([]);
 
-  // 无限滚动相关
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadingTriggerRef = useRef<HTMLDivElement | null>(null);
+  // 无限滚动相关 - 现在使用滚动事件而不是 IntersectionObserver
 
   // 交易详情相关
   const [transactionDetails, setTransactionDetails] = useState<{ [hash: string]: TransactionDetail }>({});
   const [loadingDetails, setLoadingDetails] = useState<{ [hash: string]: boolean }>({});
   const [detailErrors, setDetailErrors] = useState<{ [hash: string]: string }>({});
+
+  // 交易日志相关
+  const [transactionLogs, setTransactionLogs] = useState<{ [hash: string]: TransactionLog[] }>({});
+  const [loadingLogs, setLoadingLogs] = useState<{ [hash: string]: boolean }>({});
+  const [logErrors, setLogErrors] = useState<{ [hash: string]: string }>({});
+
+  // 防止重复触发的时间戳
+  const lastLoadTimeRef = useRef<number>(0);
 
   const loadTransactionHistory = useCallback(
     async (reset = false) => {
@@ -107,7 +116,10 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
           });
         }
 
-        setHasMore(transactions.length === pageSize);
+        // 只有当返回的交易数量等于页面大小时，才认为还有更多数据
+        const hasMoreData = transactions.length === pageSize;
+        setHasMore(hasMoreData);
+        console.log(`页面 ${currentPage} 加载完成，获取 ${transactions.length} 条交易，还有更多数据: ${hasMoreData}`);
       } catch (error) {
         console.error("加载交易历史失败:", error);
       } finally {
@@ -119,43 +131,102 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
 
   useEffect(() => {
     if (wallet && provider && isConnected) {
+      // 重置状态
+      setTransactions([]);
+      setPage(1);
+      setHasMore(true);
+      setExpandedTx(null);
+      console.log('钱包或网络变化，重置交易历史状态');
       loadTransactionHistory(true);
     }
-  }, [wallet, provider, isConnected]);
+  }, [wallet, provider, isConnected, currentNetwork]);
 
-  // 设置无限滚动观察器
+  // 设置基于滚动位置的无限滚动
   useEffect(() => {
-    if (!loadingTriggerRef.current || !hasMore || isLoading) return;
+    // 只有在有数据且还有更多数据时才设置滚动监听
+    if (!hasMore || transactions.length === 0) return;
 
-    // 清理之前的观察器
-    if (observerRef.current) {
-      observerRef.current.disconnect();
+    // 获取滚动容器（桌面端或移动端）
+    const desktopContainer = document.getElementById('transaction-scroll-container');
+    const mobileContainer = document.getElementById('transaction-scroll-container-mobile');
+    const scrollContainer = desktopContainer || mobileContainer;
+
+    if (!scrollContainer) {
+      console.log('未找到滚动容器，跳过无限滚动设置');
+      return;
     }
 
-    // 创建新的观察器
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting && hasMore && !isLoading) {
-          loadTransactionHistory(false);
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '20px',
-      }
-    );
+    const handleScroll = () => {
+      // 如果正在加载或没有更多数据，则不处理
+      if (isLoading || !hasMore) return;
 
-    // 开始观察
-    observerRef.current.observe(loadingTriggerRef.current);
+      const now = Date.now();
+
+      // 防止短时间内重复触发（至少间隔500ms）
+      if (now - lastLoadTimeRef.current < 500) {
+        return;
+      }
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+
+      // 计算距离底部的距离
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // 当距离底部小于100px时触发加载
+      if (distanceFromBottom < 100) {
+        console.log('触发无限滚动加载:', {
+          page,
+          scrollTop,
+          scrollHeight,
+          clientHeight,
+          distanceFromBottom,
+          hasMore,
+          isLoading
+        });
+
+        lastLoadTimeRef.current = now;
+        loadTransactionHistory(false);
+      }
+    };
+
+    // 添加滚动监听器
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
 
     // 清理函数
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
+      scrollContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, [hasMore, isLoading, loadTransactionHistory, transactions.length, page]);
+
+  // 检查是否需要自动加载更多数据（当容器内容不足以产生滚动条时）
+  useEffect(() => {
+    if (!hasMore || isLoading || transactions.length === 0) return;
+
+    const checkAndLoadMore = () => {
+      const desktopContainer = document.getElementById('transaction-scroll-container');
+      const mobileContainer = document.getElementById('transaction-scroll-container-mobile');
+      const scrollContainer = desktopContainer || mobileContainer;
+
+      if (!scrollContainer) return;
+
+      // 如果容器内容高度小于等于容器可视高度，说明没有滚动条，需要加载更多
+      const { scrollHeight, clientHeight } = scrollContainer;
+
+      if (scrollHeight <= clientHeight && hasMore && !isLoading) {
+        console.log('容器内容不足，自动加载更多数据:', {
+          scrollHeight,
+          clientHeight,
+          transactions: transactions.length
+        });
+        loadTransactionHistory(false);
       }
     };
-  }, [hasMore, isLoading, loadTransactionHistory]);
+
+    // 延迟检查，确保DOM已经渲染完成
+    const timer = setTimeout(checkAndLoadMore, 100);
+
+    return () => clearTimeout(timer);
+  }, [transactions.length, hasMore, isLoading, loadTransactionHistory]);
 
   const getTransactionType = (tx: TransactionHistoryType) => {
     if (!wallet) return "unknown";
@@ -340,6 +411,44 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
       }
     },
     [provider, currentNetwork, transactionDetails, loadingDetails]
+  );
+
+  // 加载交易日志
+  const loadTransactionLogs = useCallback(
+    async (txHash: string) => {
+      if (!provider || !currentNetwork) return;
+
+      // 避免重复请求
+      if (transactionLogs[txHash] || loadingLogs[txHash]) {
+        return;
+      }
+
+      setLoadingLogs(prev => ({ ...prev, [txHash]: true }));
+      setLogErrors(prev => ({ ...prev, [txHash]: '' }));
+
+      try {
+        const historyService = new TransactionHistoryService(provider, currentNetwork);
+        const result = await historyService.getTransactionLogs(txHash);
+
+        if (result.logs.length > 0) {
+          setTransactionLogs(prev => ({ ...prev, [txHash]: result.logs }));
+        } else {
+          const errorMessage = result.errors.length > 0
+            ? result.errors[0].message
+            : '无法获取交易日志';
+          setLogErrors(prev => ({ ...prev, [txHash]: errorMessage }));
+        }
+      } catch (error) {
+        console.error('获取交易日志失败:', error);
+        setLogErrors(prev => ({
+          ...prev,
+          [txHash]: '获取交易日志失败，请稍后重试'
+        }));
+      } finally {
+        setLoadingLogs(prev => ({ ...prev, [txHash]: false }));
+      }
+    },
+    [provider, currentNetwork, transactionLogs, loadingLogs]
   );
 
   // 处理交易展开/折叠
@@ -550,7 +659,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
             </div>
 
             {/* 表格内容 */}
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[40vh] overflow-y-auto" id="transaction-scroll-container">
               {filteredTransactions.map((tx) => {
                 const isExpanded = expandedTx === tx.hash;
 
@@ -831,14 +940,14 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                               </div>
                             )}
 
-                            {/* 日志数量 */}
+                            {/* 日志数量 - 交互式 */}
                             {transactionDetails[tx.hash]?.logCount !== undefined && (
-                              <div>
-                                <label className="text-xs text-gray-400 block mb-1">日志数量</label>
-                                <div className="text-sm text-white">
-                                  {transactionDetails[tx.hash].logCount}
-                                </div>
-                              </div>
+                              <TransactionLogsViewer
+                                logs={transactionLogs[tx.hash] || []}
+                                logCount={transactionDetails[tx.hash].logCount}
+                                isLoading={loadingLogs[tx.hash]}
+                                onLoadLogs={() => loadTransactionLogs(tx.hash)}
+                              />
                             )}
 
                             {/* 内部交易数量 */}
@@ -875,6 +984,15 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                                 )}
                               </div>
                             )}
+
+                            {/* 输入数据 - 交互式 */}
+                            {(tx.data || transactionDetails[tx.hash]?.inputHex) && (
+                              <div className="col-span-2">
+                                <InputDataViewer
+                                  inputData={transactionDetails[tx.hash]?.inputHex || tx.data}
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
                         <div className="flex items-center space-x-3 mt-4 pt-3 border-t border-gray-600">
@@ -895,11 +1013,23 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                   </div>
                 );
               })}
+
+              {/* 桌面端 - 数据加载完成提示 */}
+              {!hasMore && transactions.length > 0 && (
+                <div className="py-6 flex justify-center items-center border-t border-gray-700">
+                  <div className="text-sm text-gray-500 flex items-center space-x-2">
+                    <div className="w-8 h-px bg-gray-600"></div>
+                    <span>已加载全部交易记录</span>
+                    <div className="w-8 h-px bg-gray-600"></div>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
 
           {/* 移动端卡片布局 - 最大宽度90% */}
-          <div className="md:hidden space-y-3 w-full max-w-[90vw] mx-auto">
+          <div className="md:hidden space-y-3 w-full max-w-[90vw] mx-auto max-h-[90vh] overflow-y-auto" id="transaction-scroll-container-mobile">
             {filteredTransactions.map((tx) => {
               const isExpanded = expandedTx === tx.hash;
 
@@ -1178,6 +1308,28 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                             )}
                           </div>
                         )}
+
+                        {/* 日志数量 - 移动端交互式 */}
+                        {transactionDetails[tx.hash]?.logCount !== undefined && (
+                          <div className="col-span-2">
+                            <TransactionLogsViewer
+                              logs={transactionLogs[tx.hash] || []}
+                              logCount={transactionDetails[tx.hash].logCount}
+                              isLoading={loadingLogs[tx.hash]}
+                              onLoadLogs={() => loadTransactionLogs(tx.hash)}
+                            />
+                          </div>
+                        )}
+
+                        {/* 输入数据 - 移动端交互式 */}
+                        {(tx.data || transactionDetails[tx.hash]?.inputHex) && (
+                          <div className="col-span-2">
+                            <InputDataViewer
+                              inputData={transactionDetails[tx.hash]?.inputHex || tx.data}
+                              truncateLength={24}
+                            />
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center space-x-3 pt-3 border-t border-gray-600">
                         {currentNetwork && (
@@ -1197,22 +1349,37 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                 </div>
                 );
               })}
+
+              {/* 移动端 - 数据加载完成提示 */}
+              {!hasMore && transactions.length > 0 && (
+                <div className="py-6 flex justify-center items-center">
+                  <div className="text-sm text-gray-500 flex items-center space-x-2">
+                    <div className="w-6 h-px bg-gray-600"></div>
+                    <span>已加载全部交易记录</span>
+                    <div className="w-6 h-px bg-gray-600"></div>
+                  </div>
+                </div>
+              )}
+
           </div>
 
-          {/* 无限滚动触发器 */}
-          {hasMore && (
-            <div
-              ref={loadingTriggerRef}
-              className="mt-4 py-4 flex justify-center items-center"
-            >
-              {isLoading && (
+          {/* 无限滚动状态指示器 */}
+          {transactions.length > 0 && (
+            <div className="mt-4 py-2 flex justify-center items-center">
+              {isLoading && hasMore && (
                 <div className="flex items-center space-x-2 text-gray-400">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
-                  <span className="text-sm">加载中...</span>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-400"></div>
+                  <span className="text-xs">正在加载更多...</span>
+                </div>
+              )}
+              {!isLoading && hasMore && transactions.length > 0 && (
+                <div className="text-xs text-gray-500">
+                  继续滚动加载更多
                 </div>
               )}
             </div>
           )}
+
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { NetworkConfig, TransactionHistory, TransactionDetail } from '../types/web3';
+import { NetworkConfig, TransactionHistory, TransactionDetail, TransactionLog } from '../types/web3';
 import { isOKXSupported } from '../config/apiKeys';
 import { analyzeApiError, logApiError, isSuccessfulResponse, ApiError } from '../utils/apiErrorHandler';
 
@@ -58,6 +58,19 @@ interface OKXTransactionLogData {
   data: Array<{
     data: string[];
   }>;
+}
+
+// OKX API日志响应类型
+interface OKXLogResponse {
+  address: string;
+  topics: string[];
+  data: string;
+  blockNumber?: string;
+  transactionHash?: string;
+  transactionIndex?: string;
+  blockHash?: string;
+  logIndex?: string;
+  removed?: boolean;
 }
 
 
@@ -238,6 +251,41 @@ class OKXApiService {
       return await response.json() as OKXTransactionLogData;
     } catch (error) {
       console.error('获取OKX交易日志失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 获取交易的完整日志数据（新方法）
+   */
+  async getTransactionLogsDetailed(txHash: string): Promise<OKXLogResponse[] | null> {
+    const networkId = this.getNetworkIdentifier();
+    if (!networkId) {
+      console.warn(`网络 ${this.networkConfig.name} 不支持OKX API`);
+      return null;
+    }
+
+    try {
+      const url = `${this.baseUrl}/v1/${networkId}/transactions/${txHash}/logs?t=${Date.now()}`;
+
+      const response = await fetch(url, {
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // 检查响应格式并解析日志数据
+      if (data && data.data && Array.isArray(data.data)) {
+        return data.data as OKXLogResponse[];
+      }
+
+      return null;
+    } catch (error) {
+      console.error('获取OKX交易详细日志失败:', error);
       return null;
     }
   }
@@ -592,6 +640,68 @@ export class TransactionHistoryService {
     }
     console.warn(`网络 ${this.network.name} 不支持OKX API特殊功能`);
     return null;
+  }
+
+  /**
+   * 获取交易的完整日志数据（新方法）
+   */
+  async getTransactionLogs(txHash: string): Promise<{
+    logs: TransactionLog[];
+    dataSource: string;
+    errors: ApiError[];
+  }> {
+    const errors: ApiError[] = [];
+
+    try {
+      // 检查网络是否支持OKX API
+      if (isOKXSupported(this.network.chainId)) {
+        const okxLogs = await this.okxService.getTransactionLogsDetailed(txHash);
+        if (okxLogs) {
+          const parsedLogs = this.parseOKXLogs(okxLogs);
+          return {
+            logs: parsedLogs,
+            dataSource: 'okx',
+            errors: []
+          };
+        }
+      }
+
+      return {
+        logs: [],
+        dataSource: 'none',
+        errors: [analyzeApiError({
+          message: '该网络不支持获取交易日志或日志不存在',
+          details: `Network: ${this.network.name} (ChainId: ${this.network.chainId}), TxHash: ${txHash}`
+        })]
+      };
+    } catch (error) {
+      const apiError = analyzeApiError(null, error);
+      errors.push(apiError);
+      logApiError('OKX API', apiError, { txHash, network: this.network.name });
+
+      return {
+        logs: [],
+        dataSource: 'error',
+        errors
+      };
+    }
+  }
+
+  /**
+   * 解析OKX API返回的日志数据
+   */
+  private parseOKXLogs(okxLogs: OKXLogResponse[]): TransactionLog[] {
+    return okxLogs.map((log) => ({
+      address: log.address,
+      topics: log.topics || [],
+      data: log.data || '0x',
+      blockNumber: log.blockNumber ? parseInt(log.blockNumber) : undefined,
+      transactionHash: log.transactionHash,
+      transactionIndex: log.transactionIndex ? parseInt(log.transactionIndex) : undefined,
+      blockHash: log.blockHash,
+      logIndex: log.logIndex ? parseInt(log.logIndex) : undefined,
+      removed: log.removed || false
+    }));
   }
 
   /**

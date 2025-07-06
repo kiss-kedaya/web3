@@ -121,6 +121,22 @@ export interface TransactionHistory {
   realValue?: number; // 实际价值变化
 }
 
+// 交易日志接口
+export interface TransactionLog {
+  address: string;
+  topics: string[];
+  data: string;
+  blockNumber?: number;
+  transactionHash?: string;
+  transactionIndex?: number;
+  blockHash?: string;
+  logIndex?: number;
+  removed?: boolean;
+}
+
+// 日志显示格式类型
+export type LogDisplayFormat = 'raw' | 'decoded' | 'topics';
+
 // 详细交易信息接口
 export interface TransactionDetail {
   // 基础信息
@@ -153,5 +169,8 @@ export interface TransactionDetail {
   nonce?: number;
   methodId?: string;
   methodName?: string;
+
+  // 新增：完整的日志数据
+  logs?: TransactionLog[];
 }
 
