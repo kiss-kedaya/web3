@@ -1,3 +1,191 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 自定义滚动条样式 */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* 优化移动端触摸滚动 */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 网格布局优化 */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem 1.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .detail-grid {
+      gap: 0.75rem 1rem;
+    }
+  }
+
+  /* 菜单栏动态间距优化 */
+  .nav-tab {
+    transition: all 0.2s ease-in-out;
+  }
+
+  .nav-tab:hover {
+    transform: translateY(-1px);
+  }
+
+  /* 响应式菜单项宽度 */
+  @media (min-width: 1280px) {
+    .nav-tab {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .nav-tab {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .nav-tab {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+  }
+
+  @media (min-width: 640px) and (max-width: 767px) {
+    .nav-tab {
+      padding-left: 0.25rem;
+      padding-right: 0.25rem;
+    }
+  }
+
+  /* 移动端菜单优化 */
+  @media (max-width: 639px) {
+    .mobile-nav-tab {
+      min-height: 60px;
+    }
+  }
+
+  /* 上下布局优化 */
+  .vertical-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* 确保内容区域充分利用宽度 */
+  .content-area {
+    width: 100%;
+    max-width: 90vw;
+    margin: 0 auto;
+  }
+
+  /* 连接面板在上下布局中的样式 */
+  .connection-panel-top {
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  /* 主要内容区域优化 */
+  .main-content-area {
+    width: 100%;
+    flex: 1;
+  }
+
+  /* 响应式表格布局优化 */
+  .responsive-table-header,
+  .responsive-table-row {
+    display: grid;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  /* 大屏幕：宽松布局，所有列都显示 */
+  @media (min-width: 1280px) {
+    .responsive-table-header,
+    .responsive-table-row {
+      grid-template-columns:
+        minmax(160px, 1.5fr)  /* 交易哈希 */
+        minmax(100px, 0.8fr)  /* 方法 */
+        minmax(100px, 0.8fr)  /* 区块 */
+        minmax(140px, 1.2fr)  /* 时间 */
+        minmax(140px, 1.2fr)  /* 发送方 */
+        minmax(140px, 1.2fr)  /* 接收方 */
+        minmax(120px, 1fr)    /* 数量 */
+        minmax(120px, 1fr);   /* 手续费 */
+    }
+  }
+
+  /* 中大屏幕：适中布局 */
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .responsive-table-header,
+    .responsive-table-row {
+      grid-template-columns:
+        minmax(140px, 1.4fr)  /* 交易哈希 */
+        minmax(80px, 0.7fr)   /* 方法 */
+        minmax(80px, 0.7fr)   /* 区块 */
+        minmax(120px, 1fr)    /* 时间 */
+        minmax(120px, 1fr)    /* 发送方 */
+        minmax(120px, 1fr)    /* 接收方 */
+        minmax(100px, 0.9fr)  /* 数量 */
+        minmax(100px, 0.9fr); /* 手续费 */
+    }
+  }
+
+  /* 中屏幕：紧凑布局 */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .responsive-table-header,
+    .responsive-table-row {
+      grid-template-columns:
+        minmax(120px, 1.3fr)  /* 交易哈希 */
+        minmax(60px, 0.6fr)   /* 方法 */
+        minmax(70px, 0.7fr)   /* 区块 */
+        minmax(100px, 0.9fr)  /* 时间 */
+        minmax(100px, 0.9fr)  /* 发送方 */
+        minmax(100px, 0.9fr)  /* 接收方 */
+        minmax(80px, 0.8fr)   /* 数量 */
+        minmax(80px, 0.8fr);  /* 手续费 */
+    }
+  }
+
+  /* 表格内容优化 */
+  .responsive-table-row > div {
+    min-width: 0; /* 允许内容收缩 */
+    overflow: hidden; /* 隐藏溢出内容 */
+  }
+
+  /* 表格悬停效果 */
+  .responsive-table-row:hover {
+    background-color: rgba(55, 65, 81, 0.5);
+  }
+
+  /* 确保文本不会破坏布局 */
+  .table-cell-content {
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+
+  /* 优化小屏幕下的字体大小 */
+  @media (max-width: 1023px) {
+    .responsive-table-header,
+    .responsive-table-row {
+      font-size: 0.75rem; /* 12px */
+    }
+  }
+
+  @media (max-width: 767px) {
+    .responsive-table-header,
+    .responsive-table-row {
+      font-size: 0.7rem; /* 11px */
+    }
+  }
+}

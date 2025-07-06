@@ -3,11 +3,64 @@ import { NetworkConfig, TransactionHistory, TransactionDetail } from '../types/w
 import { isOKXSupported } from '../config/apiKeys';
 import { analyzeApiError, logApiError, isSuccessfulResponse, ApiError } from '../utils/apiErrorHandler';
 
-interface ExplorerAPI {
-  url: string;
-  key?: string;
-  rateLimit?: number; // requests per second
+// OKX API响应类型定义
+interface OKXApiResponse<T = unknown> {
+  code: number;
+  msg?: string;
+  detailMsg?: string;
+  data: T;
 }
+
+interface OKXTransactionData {
+  hash: string;
+  blockHeight?: string;
+  blockNumber?: string;
+  blockHash?: string;
+  from: string;
+  to: string;
+  value: string | number;
+  blocktime?: string;
+  timestamp?: string;
+  timeStamp?: string;
+  status: string | number;
+  isError?: boolean | string;
+  fee?: string | number;
+  realValue?: string | number;
+  gasUsed?: string;
+  gasLimit?: string;
+  gas?: string;
+  gasPrice?: string;
+  nonce?: string;
+  input?: string;
+  data?: string;
+  transactionIndex?: string;
+  contractAddress?: string;
+  methodId?: string;
+  method?: string;
+  confirm?: string | number;
+  legalRate?: string;
+  valueRaw?: string;
+  inputHex?: string;
+  tokenTransferCount?: string | number;
+  logCount?: string | number;
+  internalTranCount?: string | number;
+  deploymentContract?: boolean | string;
+  index?: string | number;
+  methodName?: string;
+}
+
+interface OKXTransactionListResponse {
+  hits: OKXTransactionData[];
+  total?: number;
+}
+
+interface OKXTransactionLogData {
+  data: Array<{
+    data: string[];
+  }>;
+}
+
+
 
 // OKX API支持的网络映射
 const OKX_NETWORK_MAPPING: Record<number, string> = {
@@ -164,7 +217,7 @@ class OKXApiService {
   /**
    * 获取交易日志
    */
-  async getTransactionLogs(txHash: string): Promise<any> {
+  async getTransactionLogs(txHash: string): Promise<OKXTransactionLogData | null> {
     const networkId = this.getNetworkIdentifier();
     if (!networkId) {
       console.warn(`网络 ${this.networkConfig.name} 不支持OKX API`);
@@ -182,7 +235,7 @@ class OKXApiService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
+      return await response.json() as OKXTransactionLogData;
     } catch (error) {
       console.error('获取OKX交易日志失败:', error);
       return null;
@@ -192,7 +245,7 @@ class OKXApiService {
   /**
    * 获取地址的交易历史
    */
-  async getAddressTransactions(address: string, offset: number = 0, limit: number = 20): Promise<any> {
+  async getAddressTransactions(address: string, offset: number = 0, limit: number = 20): Promise<OKXApiResponse<OKXTransactionListResponse> | null> {
     const networkId = this.getNetworkIdentifier();
     if (!networkId) {
       console.warn(`网络 ${this.networkConfig.name} 不支持OKX API`);
@@ -210,9 +263,38 @@ class OKXApiService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
+      return await response.json() as OKXApiResponse<OKXTransactionListResponse>;
     } catch (error) {
       console.error('获取OKX地址交易失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 获取交易详细信息
+   */
+  async getTransactionDetail(txHash: string): Promise<OKXApiResponse<OKXTransactionData | OKXTransactionData[]> | null> {
+    const networkId = this.getNetworkIdentifier();
+    if (!networkId) {
+      console.warn(`网络 ${this.networkConfig.name} 不支持OKX API`);
+      return null;
+    }
+
+    try {
+      const timestamp = Date.now();
+      const url = `${this.baseUrl}/v1/${networkId}/transactions/${txHash}?t=${timestamp}`;
+
+      const response = await fetch(url, {
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json() as OKXApiResponse<OKXTransactionData | OKXTransactionData[]>;
+    } catch (error) {
+      console.error('获取OKX交易详情失败:', error);
       return null;
     }
   }
@@ -341,8 +423,8 @@ export class TransactionHistoryService {
   /**
    * 解析OKX API响应数据
    */
-  private parseOKXResponse(okxTxs: any[]): TransactionHistory[] {
-    return okxTxs.map(tx => ({
+  private parseOKXResponse(okxTxs: OKXTransactionData[]): TransactionHistory[] {
+    return okxTxs.map((tx: OKXTransactionData) => ({
       hash: tx.hash,
       blockNumber: parseInt(tx.blockHeight || tx.blockNumber || '0'),
       blockHash: tx.blockHash || '',
@@ -350,7 +432,7 @@ export class TransactionHistoryService {
       from: tx.from,
       to: tx.to,
       value: this.parseOKXValue(tx.value),
-      gasPrice: this.parseOKXGasPrice(tx.fee),
+      gasPrice: this.parseOKXGasPrice(tx.gasPrice),
       gasUsed: tx.gasUsed || '0',
       gasLimit: tx.gasLimit || tx.gas || '0',
       nonce: parseInt(tx.nonce || '0'),
@@ -371,7 +453,7 @@ export class TransactionHistoryService {
    * 解析OKX API的value字段
    * OKX返回的是已经格式化的十进制数值，不需要再用formatEther转换
    */
-  private parseOKXValue(value: any): string {
+  private parseOKXValue(value: string | number | null | undefined): string {
     try {
       if (value === null || value === undefined) {
         return '0';
@@ -399,29 +481,41 @@ export class TransactionHistoryService {
 
   /**
    * 解析OKX API的gas价格
-   * OKX的fee字段是已经计算好的手续费，不是gas价格
+   * 正确处理OKX API返回的gasPrice字段
    */
-  private parseOKXGasPrice(fee: any): string {
+  private parseOKXGasPrice(gasPrice: string | number | null | undefined): string {
     try {
-      if (fee === null || fee === undefined) {
+      if (gasPrice === null || gasPrice === undefined) {
         return '0';
       }
 
-      if (typeof fee === 'number') {
-        // 将手续费转换为Gwei单位显示
-        return (fee * 1e9).toFixed(2); // 假设fee是以ETH为单位
-      }
+      let gasPriceValue: number;
 
-      if (typeof fee === 'string') {
-        const numFee = parseFloat(fee);
-        if (!isNaN(numFee)) {
-          return (numFee * 1e9).toFixed(2);
+      if (typeof gasPrice === 'number') {
+        gasPriceValue = gasPrice;
+      } else if (typeof gasPrice === 'string') {
+        gasPriceValue = parseFloat(gasPrice);
+        if (isNaN(gasPriceValue)) {
+          return '0';
         }
+      } else {
+        return '0';
       }
 
-      return '0';
+      // OKX API通常返回的gasPrice已经是以Wei为单位
+      // 1 Gwei = 1e9 Wei，所以需要除以1e9来转换为Gwei
+      const gasPriceInGwei = gasPriceValue / 1e9;
+
+      // 如果值太小，显示更多小数位
+      if (gasPriceInGwei < 0.001) {
+        return gasPriceInGwei.toFixed(9);
+      } else if (gasPriceInGwei < 1) {
+        return gasPriceInGwei.toFixed(6);
+      } else {
+        return gasPriceInGwei.toFixed(2);
+      }
     } catch (error) {
-      console.warn('解析OKX gas price失败:', error, 'fee:', fee);
+      console.warn('解析OKX gas price失败:', error, 'gasPrice:', gasPrice);
       return '0';
     }
   }
@@ -429,7 +523,7 @@ export class TransactionHistoryService {
   /**
    * 解析OKX API的交易状态
    */
-  private parseOKXStatus(status: any, isError: any): number {
+  private parseOKXStatus(status: string | number | null | undefined, isError: boolean | string | null | undefined): number {
     try {
       // 如果明确标记为错误
       if (isError === true || isError === 'true') {
@@ -492,7 +586,7 @@ export class TransactionHistoryService {
   /**
    * 获取交易的详细日志（使用OKX API）
    */
-  async getTransactionDetailedLogs(txHash: string): Promise<any> {
+  async getTransactionDetailedLogs(txHash: string): Promise<OKXTransactionLogData | null> {
     if (this.okxService.isNetworkSupported()) {
       return await this.okxService.getTransactionLogs(txHash);
     }
@@ -536,8 +630,8 @@ export class TransactionHistoryService {
       const logData = await this.getTransactionDetailedLogs(txHash);
 
       if (logData && logData.data && logData.data.length > 1) {
-        const levelHex = logData.data[1].data[7];
-        if (levelHex) {
+        const levelHex = logData.data[1]?.data?.[7];
+        if (levelHex && typeof levelHex === 'string') {
           return parseInt(levelHex, 16);
         }
       }
@@ -547,6 +641,13 @@ export class TransactionHistoryService {
       console.error('解析Feed等级失败:', error);
       return null;
     }
+  }
+
+  /**
+   * 获取OKX网络标识符
+   */
+  private getOKXNetworkId(): string | null {
+    return OKX_NETWORK_MAPPING[this.network.chainId] || null;
   }
 
   /**
@@ -562,8 +663,8 @@ export class TransactionHistoryService {
     const errors: ApiError[] = [];
 
     try {
-      // 只使用OKX API获取交易详情
-      if (isOKXSupported(this.network.name)) {
+      // 检查网络是否支持OKX API（使用chainId而不是name）
+      if (isOKXSupported(this.network.chainId)) {
         const networkId = this.getOKXNetworkId();
         if (networkId) {
           const detail = await this.fetchOKXTransactionDetail(txHash, networkId);
@@ -580,16 +681,15 @@ export class TransactionHistoryService {
       return {
         detail: null,
         dataSource: 'none',
-        errors: [{
-          source: 'okx',
+        errors: [analyzeApiError({
           message: '该网络不支持获取交易详情或交易不存在',
-          details: `Network: ${this.network.name}, TxHash: ${txHash}`
-        }]
+          details: `Network: ${this.network.name} (ChainId: ${this.network.chainId}), TxHash: ${txHash}`
+        })]
       };
     } catch (error) {
-      const apiError = analyzeApiError(error, 'okx');
+      const apiError = analyzeApiError(null, error);
       errors.push(apiError);
-      logApiError(apiError);
+      logApiError('OKX API', apiError, { txHash, network: this.network.name });
 
       return {
         detail: null,
@@ -601,37 +701,43 @@ export class TransactionHistoryService {
 
   /**
    * 从OKX API获取交易详细信息
+   * 使用OKX服务的getTransactionDetail方法
    */
   private async fetchOKXTransactionDetail(txHash: string, networkId: string): Promise<TransactionDetail | null> {
     try {
-      const timestamp = Date.now();
-      const url = `https://www.oklink.com/api/explorer/v1/${networkId}/transactions/${txHash}?t=${timestamp}`;
+      console.log(`🔄 获取OKX交易详情: ${networkId}/${txHash}`);
 
-      console.log(`获取OKX交易详情: ${url}`);
+      // 使用OKX服务的getTransactionDetail方法
+      const data = await this.okxService.getTransactionDetail(txHash);
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      if (!isSuccessfulResponse(response)) {
-        throw new Error(`OKX API请求失败: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data.code !== 0 || !data.data || !data.data.length) {
-        console.warn('OKX API返回空数据或错误:', data);
+      if (!data) {
+        console.warn('⚠️ OKX API返回空响应');
         return null;
       }
 
-      const txData = data.data[0];
+      console.log('🔍 OKX API响应:', { code: data.code, hasData: !!data.data, dataType: Array.isArray(data.data) ? 'array' : typeof data.data });
+
+      if (data.code !== 0 || !data.data) {
+        console.warn('⚠️ OKX API返回空数据或错误:', data);
+        return null;
+      }
+
+      // 处理两种可能的数据格式：单个对象或包含单个对象的数组
+      let txData: OKXTransactionData;
+      if (Array.isArray(data.data)) {
+        if (data.data.length === 0) {
+          console.warn('⚠️ OKX API返回空数组');
+          return null;
+        }
+        txData = data.data[0];
+      } else {
+        txData = data.data;
+      }
+
+      console.log('✅ 成功获取交易详情');
       return this.parseOKXTransactionDetail(txData);
     } catch (error) {
-      console.error('获取OKX交易详情失败:', error);
+      console.error('❌ 获取OKX交易详情失败:', error);
       throw error;
     }
   }
@@ -639,7 +745,7 @@ export class TransactionHistoryService {
   /**
    * 解析OKX API返回的交易详细信息
    */
-  private parseOKXTransactionDetail(tx: any): TransactionDetail {
+  private parseOKXTransactionDetail(tx: OKXTransactionData): TransactionDetail {
     return {
       hash: tx.hash || '',
       blockNumber: parseInt(tx.blockHeight || tx.blockNumber || '0'),
@@ -651,17 +757,17 @@ export class TransactionHistoryService {
       status: tx.status === '0x1' || tx.status === 1 || tx.isError === false ? 1 : 0,
 
       // 详细信息
-      confirm: parseInt(tx.confirm || '0'),
+      confirm: parseInt(String(tx.confirm || '0')),
       legalRate: tx.legalRate || undefined,
-      valueRaw: tx.valueRaw || tx.value?.toString() || '0',
+      valueRaw: tx.valueRaw || String(tx.value || '0'),
       gasUsed: tx.gasUsed || '0',
       gasLimit: tx.gasLimit || tx.gas || '0',
-      gasPrice: tx.gasPrice || '0',
-      index: parseInt(tx.index || tx.transactionIndex || '0'),
+      gasPrice: this.parseOKXGasPrice(tx.gasPrice),
+      index: parseInt(String(tx.index || tx.transactionIndex || '0')),
       inputHex: tx.inputHex || tx.input || tx.data || '0x',
-      tokenTransferCount: parseInt(tx.tokenTransferCount || '0'),
-      logCount: parseInt(tx.logCount || '0'),
-      internalTranCount: parseInt(tx.internalTranCount || '0'),
+      tokenTransferCount: parseInt(String(tx.tokenTransferCount || '0')),
+      logCount: parseInt(String(tx.logCount || '0')),
+      internalTranCount: parseInt(String(tx.internalTranCount || '0')),
       deploymentContract: tx.deploymentContract === true || tx.deploymentContract === 'true',
 
       // OKX特有字段

@@ -245,50 +245,77 @@ function App() {
         </div>
       </header>
 
+      {/* 主要内容容器 - 固定上下布局 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 连接面板 */}
-          <div className="lg:col-span-1">
-            <ConnectionPanel
-              isConnected={isConnected}
-              currentNetwork={currentNetwork}
-              onConnect={handleConnect}
-              onDisconnect={disconnect}
-              onSwitchNetwork={handleSwitchNetwork}
-            />
-          </div>
+        {/* 连接面板 - 始终在顶部 */}
+        <div className="mb-8">
+          <ConnectionPanel
+            isConnected={isConnected}
+            currentNetwork={currentNetwork}
+            onConnect={handleConnect}
+            onDisconnect={disconnect}
+            onSwitchNetwork={handleSwitchNetwork}
+          />
+        </div>
 
-          {/* 主要内容 */}
-          <div className="lg:col-span-2">
-            {/* 标签导航 */}
-            <div className="mb-6">
-              <div className="border-b border-gray-700">
-                <nav className="flex space-x-8 overflow-x-auto">
+        {/* 主要内容区域 - 在连接面板下方 */}
+        <div className="w-full">
+          {/* 标签导航 - 统一布局 */}
+          <div className="mb-6">
+            <div className="border-b border-gray-700">
+              {/* 桌面端和平板：水平布局 */}
+              <nav className="hidden sm:flex w-full">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`nav-tab flex-1 flex items-center justify-center space-x-2 py-3 px-2 border-b-2 font-medium text-sm transition-colors whitespace-nowrap min-w-0 ${
+                        activeTab === tab.id
+                          ? 'border-blue-500 text-blue-400'
+                          : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
+                      }`}
+                    >
+                      <Icon size={16} className="flex-shrink-0" />
+                      <span className="hidden lg:inline">{tab.label}</span>
+                      <span className="lg:hidden hidden md:inline truncate">{tab.label.slice(0, 4)}</span>
+                      <span className="md:hidden truncate">{tab.label.slice(0, 2)}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              {/* 移动端：垂直图标布局 */}
+              <nav className="sm:hidden">
+                <div className="flex w-full">
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                        className={`mobile-nav-tab flex-1 flex flex-col items-center justify-center py-2 px-1 font-medium text-xs transition-colors min-w-0 ${
                           activeTab === tab.id
-                            ? 'border-blue-500 text-blue-400'
-                            : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
+                            ? 'text-blue-400 bg-blue-500/10'
+                            : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
                         }`}
                       >
-                        <Icon size={18} />
-                        <span>{tab.label}</span>
+                        <Icon size={14} className="flex-shrink-0" />
+                        <span className="mt-1 text-[10px] truncate w-full text-center leading-tight">
+                          {tab.label}
+                        </span>
                       </button>
                     );
                   })}
-                </nav>
-              </div>
+                </div>
+              </nav>
             </div>
+          </div>
 
-            {/* 标签内容 */}
-            <div>
-              {renderTabContent()}
-            </div>
+          {/* 标签内容 */}
+          <div>
+            {renderTabContent()}
           </div>
         </div>
       </div>

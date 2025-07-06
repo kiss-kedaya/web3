@@ -214,6 +214,86 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
     }
   };
 
+  // 格式化Gas价格显示
+  const formatGasPrice = (gasPrice: string) => {
+    try {
+      const price = parseFloat(gasPrice);
+      if (price === 0) return "0 Gwei";
+
+      // 如果价格很小，显示更多小数位
+      if (price < 0.001) {
+        return `${price.toFixed(9)} Gwei`;
+      } else if (price < 1) {
+        return `${price.toFixed(6)} Gwei`;
+      } else {
+        return `${price.toFixed(2)} Gwei`;
+      }
+    } catch {
+      return `${gasPrice} Gwei`;
+    }
+  };
+
+  // 增强的Gas价格显示（包含原生货币和Gwei）
+  const formatEnhancedGasPrice = (gasPrice: string) => {
+    try {
+      // 确保有网络信息 - 使用正确的字段名
+      const networkSymbol = currentNetwork?.symbol || 'ETH';
+
+      const priceInGwei = parseFloat(gasPrice);
+      if (priceInGwei === 0) return `0 ${networkSymbol} (0 Gwei)`;
+
+      // 将Gwei转换为原生货币单位
+      // 1 Gwei = 1e-9 ETH/BNB
+      const priceInNative = priceInGwei * 1e-9;
+
+      // 格式化原生货币显示
+      let nativeDisplay: string;
+      if (priceInNative < 1e-12) {
+        nativeDisplay = priceInNative.toExponential(3);
+      } else if (priceInNative < 1e-6) {
+        // 对于非常小的数值，保留更多小数位
+        nativeDisplay = priceInNative.toFixed(18).replace(/\.?0+$/, '');
+      } else {
+        nativeDisplay = priceInNative.toFixed(15).replace(/\.?0+$/, '');
+      }
+
+      // 格式化Gwei显示
+      let gweiDisplay: string;
+      if (priceInGwei < 0.001) {
+        gweiDisplay = priceInGwei.toFixed(9);
+      } else if (priceInGwei < 1) {
+        gweiDisplay = priceInGwei.toFixed(6);
+      } else {
+        gweiDisplay = priceInGwei.toFixed(2);
+      }
+
+      return `${nativeDisplay} ${networkSymbol} (${gweiDisplay} Gwei)`;
+    } catch (error) {
+      console.error('Gas price formatting error:', error, 'gasPrice:', gasPrice);
+      return `${gasPrice} Gwei`;
+    }
+  };
+
+  // 添加千位分隔符
+  const addCommas = (num: string | number): string => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  };
+
+  // 格式化Gas限制和使用量
+  const formatGasLimitAndUsage = (gasLimit: string, gasUsed: string) => {
+    try {
+      const limit = parseInt(gasLimit);
+      const used = parseInt(gasUsed);
+
+      if (limit === 0) return `${addCommas(used)} (N/A)`;
+
+      const percentage = ((used / limit) * 100).toFixed(1);
+      return `${addCommas(limit)} | ${addCommas(used)} (${percentage}%)`;
+    } catch {
+      return `${gasLimit} | ${gasUsed}`;
+    }
+  };
+
   // 复制到剪贴板功能
   const copyToClipboard = async (text: string) => {
     try {
@@ -453,15 +533,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
             </div>
           </div>
 
-          {/* 桌面端表格布局 */}
-          <div className="hidden md:block bg-gray-800 rounded-lg overflow-hidden">
+          {/* 桌面端表格布局 - 响应式优化，最大宽度90% */}
+          <div className="hidden md:block bg-gray-800 rounded-lg overflow-hidden w-full max-w-[90vw] mx-auto">
             {/* 表格头部 */}
             <div className="bg-gray-700 px-4 py-2 border-b border-gray-600">
-              <div className="grid gap-2 text-xs font-medium text-gray-300"
-                   style={{
-                     gridTemplateColumns: 'minmax(140px, 1fr) minmax(80px, 0.6fr) minmax(100px, 0.7fr) minmax(160px, 1fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(160px, 1fr) minmax(120px, 0.8fr)',
-                     minWidth: '1200px'
-                   }}>
+              <div className="responsive-table-header grid gap-2 text-xs font-medium text-gray-300">
                 <div>交易哈希</div>
                 <div>方法</div>
                 <div>区块</div>
@@ -474,7 +550,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
             </div>
 
             {/* 表格内容 */}
-            <div className="max-h-96 overflow-y-auto overflow-x-auto">
+            <div className="max-h-96 overflow-y-auto">
               {filteredTransactions.map((tx) => {
                 const isExpanded = expandedTx === tx.hash;
 
@@ -487,31 +563,28 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                       className="px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors"
                       onClick={() => handleTransactionExpand(tx.hash)}
                     >
-                      <div className="grid gap-2 items-center text-sm"
-                           style={{
-                             gridTemplateColumns: 'minmax(140px, 1fr) minmax(80px, 0.6fr) minmax(100px, 0.7fr) minmax(160px, 1fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(160px, 1fr) minmax(120px, 0.8fr)',
-                             minWidth: '1200px'
-                           }}>
+                      <div className="responsive-table-row grid gap-2 items-center text-sm">
                         {/* 交易哈希 */}
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1 min-w-0">
                           <a
                             href={getExplorerUrl(currentNetwork!, tx.hash)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 font-mono text-xs"
+                            className="text-blue-400 hover:text-blue-300 font-mono text-xs truncate"
                             onClick={(e) => e.stopPropagation()}
+                            title={tx.hash}
                           >
                             {shortenHash(tx.hash)}
                           </a>
                           {isExpanded ? (
-                            <ChevronUp size={12} className="text-gray-400" />
+                            <ChevronUp size={12} className="text-gray-400 flex-shrink-0" />
                           ) : (
-                            <ChevronDown size={12} className="text-gray-400" />
+                            <ChevronDown size={12} className="text-gray-400 flex-shrink-0" />
                           )}
                         </div>
 
                         {/* 方法 */}
-                        <div className="text-white text-xs">
+                        <div className="text-white text-xs truncate" title={tx.methodName || tx.methodId || "transfer"}>
                           {tx.methodName
                             ? tx.methodName.split("(")[0]
                             : tx.methodId
@@ -538,14 +611,14 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                         </div>
 
                         {/* 发送方 */}
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-1 min-w-0">
                           <a
                             href={getOKLinkAddressUrl(tx.from)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 font-mono text-xs transition-colors"
+                            className="text-blue-400 hover:text-blue-300 font-mono text-xs transition-colors truncate"
                             onClick={(e) => e.stopPropagation()}
-                            title="在OKLink中查看地址"
+                            title={`发送方: ${tx.from}`}
                           >
                             {shortenAddress(tx.from)}
                           </a>
@@ -554,35 +627,35 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                               e.stopPropagation();
                               copyToClipboard(tx.from);
                             }}
-                            className="text-gray-400 hover:text-gray-200 transition-colors"
+                            className="text-gray-400 hover:text-gray-200 transition-colors flex-shrink-0"
                             title="复制地址"
                           >
                             <Copy size={10} />
                           </button>
                           {tx.from.toLowerCase() ===
                             wallet?.address.toLowerCase() && (
-                            <span className="text-xs bg-orange-600 text-white px-1 py-0.5 rounded">
+                            <span className="text-xs bg-orange-600 text-white px-1 py-0.5 rounded flex-shrink-0">
                               Out
                             </span>
                           )}
                         </div>
 
                         {/* 接收方 */}
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex items-center space-x-1">
                             {tx.to ? (
                               <a
                                 href={getOKLinkAddressUrl(tx.to)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-400 hover:text-blue-300 font-mono text-xs transition-colors"
+                                className="text-blue-400 hover:text-blue-300 font-mono text-xs transition-colors truncate"
                                 onClick={(e) => e.stopPropagation()}
-                                title="在OKLink中查看地址"
+                                title={`接收方: ${tx.to}`}
                               >
                                 {shortenAddress(tx.to)}
                               </a>
                             ) : (
-                              <span className="text-gray-300 font-mono text-xs">
+                              <span className="text-gray-300 font-mono text-xs truncate">
                                 {shortenAddress(tx.to || "")}
                               </span>
                             )}
@@ -592,7 +665,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                                   e.stopPropagation();
                                   copyToClipboard(tx.to!);
                                 }}
-                                className="text-gray-400 hover:text-gray-200 transition-colors"
+                                className="text-gray-400 hover:text-gray-200 transition-colors flex-shrink-0"
                                 title="复制地址"
                               >
                                 <Copy size={10} />
@@ -600,7 +673,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                             )}
                             {tx.to?.toLowerCase() ===
                               wallet?.address.toLowerCase() && (
-                              <span className="text-xs bg-green-600 text-white px-1 py-0.5 rounded">
+                              <span className="text-xs bg-green-600 text-white px-1 py-0.5 rounded flex-shrink-0">
                                 In
                               </span>
                             )}
@@ -621,36 +694,50 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                         </div>
 
                         {/* 数量 */}
-                        <div className="text-white font-mono text-xs">
+                        <div className="text-white font-mono text-xs min-w-0">
                           {parseFloat(tx.value) > 0 ? (
                             <span
-                              className={
+                              className={`truncate block ${
                                 tx.from.toLowerCase() ===
                                 wallet?.address.toLowerCase()
                                   ? "text-red-400"
                                   : "text-green-400"
-                              }
+                              }`}
+                              title={`${tx.from.toLowerCase() === wallet?.address.toLowerCase() ? "-" : ""}${parseFloat(tx.value).toFixed(10)} ${currentNetwork?.symbol}`}
                             >
                               {tx.from.toLowerCase() ===
                               wallet?.address.toLowerCase()
                                 ? "-"
                                 : ""}
-                              {parseFloat(tx.value).toFixed(10)}{" "}
-                              {currentNetwork?.symbol}
+                              {parseFloat(tx.value).toFixed(6)}{" "}
+                              <span className="hidden lg:inline">{currentNetwork?.symbol}</span>
+                              <span className="lg:hidden">{currentNetwork?.symbol?.slice(0, 3)}</span>
                             </span>
                           ) : (
-                            <span className="text-gray-400">
-                              0.0000000000 {currentNetwork?.symbol}
+                            <span className="text-gray-400 truncate block" title={`0.0000000000 ${currentNetwork?.symbol}`}>
+                              0.000000{" "}
+                              <span className="hidden lg:inline">{currentNetwork?.symbol}</span>
+                              <span className="lg:hidden">{currentNetwork?.symbol?.slice(0, 3)}</span>
                             </span>
                           )}
                         </div>
 
                         {/* 手续费 */}
-                        <div className="text-gray-300 font-mono text-xs">
-                          {tx.fee !== undefined && tx.fee !== null && tx.fee > 0 ?
-                            `${parseFloat(tx.fee.toString()).toFixed(10)} ${currentNetwork?.symbol}` :
-                            `${parseFloat(calculateTransactionFee(tx.gasUsed, tx.gasPrice)).toFixed(10)} ${currentNetwork?.symbol}`
-                          }
+                        <div className="text-gray-300 font-mono text-xs min-w-0">
+                          <span
+                            className="truncate block"
+                            title={`${tx.fee !== undefined && tx.fee !== null && tx.fee > 0 ?
+                              `${parseFloat(tx.fee.toString()).toFixed(10)} ${currentNetwork?.symbol}` :
+                              `${parseFloat(calculateTransactionFee(tx.gasUsed, tx.gasPrice)).toFixed(10)} ${currentNetwork?.symbol}`
+                            }`}
+                          >
+                            {tx.fee !== undefined && tx.fee !== null && tx.fee > 0 ?
+                              `${parseFloat(tx.fee.toString()).toFixed(6)} ` :
+                              `${parseFloat(calculateTransactionFee(tx.gasUsed, tx.gasPrice)).toFixed(6)} `
+                            }
+                            <span className="hidden lg:inline">{currentNetwork?.symbol}</span>
+                            <span className="lg:hidden">{currentNetwork?.symbol?.slice(0, 3)}</span>
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -675,123 +762,119 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                           </div>
                         )}
 
-                        {/* 详细信息 */}
+                        {/* 详细信息 - 优化的网格布局 */}
                         {!loadingDetails[tx.hash] && !detailErrors[tx.hash] && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            <div className="space-y-2">
-                              <div>
-                                <label className="text-xs text-gray-400">状态</label>
-                                <div className={`text-sm ${
-                                  tx.status === 1 ? "text-green-400" : "text-red-400"
-                                }`}>
-                                  {tx.status === 1 ? "成功" : "失败"}
-                                </div>
-                              </div>
-
-                              {/* 确认数 */}
-                              {transactionDetails[tx.hash]?.confirm !== undefined && (
-                                <div>
-                                  <label className="text-xs text-gray-400">确认数</label>
-                                  <div className="text-sm text-white">
-                                    {transactionDetails[tx.hash].confirm}
-                                  </div>
-                                </div>
-                              )}
-
-                              <div>
-                                <label className="text-xs text-gray-400">Gas使用量</label>
-                                <div className="text-sm text-white">
-                                  {transactionDetails[tx.hash]?.gasUsed || tx.gasUsed}
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="text-xs text-gray-400">Gas限制</label>
-                                <div className="text-sm text-white">
-                                  {transactionDetails[tx.hash]?.gasLimit || 'N/A'}
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="text-xs text-gray-400">Gas价格</label>
-                                <div className="text-sm text-white">
-                                  {transactionDetails[tx.hash]?.gasPrice || tx.gasPrice} Gwei
-                                </div>
+                          <div className="detail-grid mt-4">
+                            {/* 状态 */}
+                            <div>
+                              <label className="text-xs text-gray-400 block mb-1">状态</label>
+                              <div className={`text-sm ${
+                                tx.status === 1 ? "text-green-400" : "text-red-400"
+                              }`}>
+                                {tx.status === 1 ? "成功" : "失败"}
                               </div>
                             </div>
 
-                            <div className="space-y-2">
+                            {/* 确认数 */}
+                            {transactionDetails[tx.hash]?.confirm !== undefined ? (
                               <div>
-                                <label className="text-xs text-gray-400">Nonce</label>
+                                <label className="text-xs text-gray-400 block mb-1">确认数</label>
+                                <div className="text-sm text-white">
+                                  {transactionDetails[tx.hash].confirm}
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <label className="text-xs text-gray-400 block mb-1">Nonce</label>
                                 <div className="text-sm text-white">
                                   {transactionDetails[tx.hash]?.nonce || tx.nonce}
                                 </div>
                               </div>
+                            )}
 
-                              {/* 交易索引 */}
-                              {transactionDetails[tx.hash]?.index !== undefined && (
-                                <div>
-                                  <label className="text-xs text-gray-400">交易索引</label>
-                                  <div className="text-sm text-white">
-                                    {transactionDetails[tx.hash].index}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* 代币转账数量 */}
-                              {transactionDetails[tx.hash]?.tokenTransferCount !== undefined && (
-                                <div>
-                                  <label className="text-xs text-gray-400">代币转账数</label>
-                                  <div className="text-sm text-white">
-                                    {transactionDetails[tx.hash].tokenTransferCount}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* 日志数量 */}
-                              {transactionDetails[tx.hash]?.logCount !== undefined && (
-                                <div>
-                                  <label className="text-xs text-gray-400">日志数量</label>
-                                  <div className="text-sm text-white">
-                                    {transactionDetails[tx.hash].logCount}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* 内部交易数量 */}
-                              {transactionDetails[tx.hash]?.internalTranCount !== undefined && (
-                                <div>
-                                  <label className="text-xs text-gray-400">内部交易数</label>
-                                  <div className="text-sm text-white">
-                                    {transactionDetails[tx.hash].internalTranCount}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* 合约部署标识 */}
-                              {transactionDetails[tx.hash]?.deploymentContract && (
-                                <div>
-                                  <label className="text-xs text-gray-400">交易类型</label>
-                                  <div className="text-sm text-purple-400">
-                                    合约部署
-                                  </div>
-                                </div>
-                              )}
-
-                              {(tx.methodId || transactionDetails[tx.hash]?.methodId) && (
-                                <div>
-                                  <label className="text-xs text-gray-400">方法签名</label>
-                                  <div className="text-sm text-white font-mono">
-                                    {transactionDetails[tx.hash]?.methodId || tx.methodId}
-                                  </div>
-                                  {(tx.methodName || transactionDetails[tx.hash]?.methodName) && (
-                                    <div className="text-xs text-yellow-400 mt-1">
-                                      {transactionDetails[tx.hash]?.methodName || tx.methodName}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                            {/* Gas 限额 & Gas 消耗 */}
+                            <div>
+                              <label className="text-xs text-gray-400 block mb-1">Gas 限额 & Gas 消耗</label>
+                              <div className="text-sm text-white font-mono">
+                                {formatGasLimitAndUsage(
+                                  transactionDetails[tx.hash]?.gasLimit || tx.gasLimit || '0',
+                                  transactionDetails[tx.hash]?.gasUsed || tx.gasUsed
+                                )}
+                              </div>
                             </div>
+
+                            {/* Gas 价格 */}
+                            <div>
+                              <label className="text-xs text-gray-400 block mb-1">Gas 价格</label>
+                              <div className="text-sm text-white font-mono">
+                                {formatEnhancedGasPrice(transactionDetails[tx.hash]?.gasPrice || tx.gasPrice)}
+                              </div>
+                            </div>
+
+                            {/* 交易索引 */}
+                            {transactionDetails[tx.hash]?.index !== undefined && (
+                              <div>
+                                <label className="text-xs text-gray-400 block mb-1">交易索引</label>
+                                <div className="text-sm text-white">
+                                  {transactionDetails[tx.hash].index}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 代币转账数量 */}
+                            {transactionDetails[tx.hash]?.tokenTransferCount !== undefined && (
+                              <div>
+                                <label className="text-xs text-gray-400 block mb-1">代币转账数</label>
+                                <div className="text-sm text-white">
+                                  {transactionDetails[tx.hash].tokenTransferCount}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 日志数量 */}
+                            {transactionDetails[tx.hash]?.logCount !== undefined && (
+                              <div>
+                                <label className="text-xs text-gray-400 block mb-1">日志数量</label>
+                                <div className="text-sm text-white">
+                                  {transactionDetails[tx.hash].logCount}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 内部交易数量 */}
+                            {transactionDetails[tx.hash]?.internalTranCount !== undefined && (
+                              <div>
+                                <label className="text-xs text-gray-400 block mb-1">内部交易数</label>
+                                <div className="text-sm text-white">
+                                  {transactionDetails[tx.hash].internalTranCount}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 合约部署标识 */}
+                            {transactionDetails[tx.hash]?.deploymentContract && (
+                              <div>
+                                <label className="text-xs text-gray-400 block mb-1">交易类型</label>
+                                <div className="text-sm text-purple-400">
+                                  合约部署
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 方法签名 */}
+                            {(tx.methodId || transactionDetails[tx.hash]?.methodId) && (
+                              <div className="col-span-2">
+                                <label className="text-xs text-gray-400 block mb-1">方法签名</label>
+                                <div className="text-sm text-white font-mono">
+                                  {transactionDetails[tx.hash]?.methodId || tx.methodId}
+                                </div>
+                                {(tx.methodName || transactionDetails[tx.hash]?.methodName) && (
+                                  <div className="text-xs text-yellow-400 mt-1">
+                                    {transactionDetails[tx.hash]?.methodName || tx.methodName}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                         <div className="flex items-center space-x-3 mt-4 pt-3 border-t border-gray-600">
@@ -815,8 +898,8 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
             </div>
           </div>
 
-          {/* 移动端卡片布局 */}
-          <div className="md:hidden space-y-3">
+          {/* 移动端卡片布局 - 最大宽度90% */}
+          <div className="md:hidden space-y-3 w-full max-w-[90vw] mx-auto">
             {filteredTransactions.map((tx) => {
               const isExpanded = expandedTx === tx.hash;
 
@@ -1021,41 +1104,80 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                     </div>
                   </div>
 
-                  {/* 展开的详细信息 */}
+                  {/* 展开的详细信息 - 移动端优化网格布局 */}
                   {isExpanded && (
                     <div className="px-4 pb-4 border-t border-gray-600">
-                      <div className="grid grid-cols-1 gap-4 mt-4">
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-xs text-gray-400">状态</label>
-                            <div className={`text-sm ${
-                              tx.status === 1 ? "text-green-400" : "text-red-400"
-                            }`}>
-                              {tx.status === 1 ? "成功" : "失败"}
-                            </div>
+                      <div className="detail-grid mt-4">
+                        {/* 状态 */}
+                        <div>
+                          <label className="text-xs text-gray-400 block mb-1">状态</label>
+                          <div className={`text-sm ${
+                            tx.status === 1 ? "text-green-400" : "text-red-400"
+                          }`}>
+                            {tx.status === 1 ? "成功" : "失败"}
                           </div>
-                          <div>
-                            <label className="text-xs text-gray-400">Gas使用量</label>
-                            <div className="text-sm text-white">{tx.gasUsed}</div>
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-400">Gas价格</label>
-                            <div className="text-sm text-white">{tx.gasPrice} Gwei</div>
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-400">Nonce</label>
-                            <div className="text-sm text-white">{tx.nonce}</div>
-                          </div>
-                          {tx.methodId && (
-                            <div>
-                              <label className="text-xs text-gray-400">方法签名</label>
-                              <div className="text-sm text-white font-mono">{tx.methodId}</div>
-                              {tx.methodName && (
-                                <div className="text-xs text-yellow-400 mt-1">{tx.methodName}</div>
-                              )}
-                            </div>
-                          )}
                         </div>
+
+                        {/* 确认数或Nonce */}
+                        {transactionDetails[tx.hash]?.confirm !== undefined ? (
+                          <div>
+                            <label className="text-xs text-gray-400 block mb-1">确认数</label>
+                            <div className="text-sm text-white">
+                              {transactionDetails[tx.hash].confirm}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="text-xs text-gray-400 block mb-1">Nonce</label>
+                            <div className="text-sm text-white">
+                              {transactionDetails[tx.hash]?.nonce || tx.nonce}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Gas 限额 & Gas 消耗 */}
+                        <div className="col-span-2">
+                          <label className="text-xs text-gray-400 block mb-1">Gas 限额 & Gas 消耗</label>
+                          <div className="text-sm text-white font-mono">
+                            {formatGasLimitAndUsage(
+                              transactionDetails[tx.hash]?.gasLimit || tx.gasLimit || '0',
+                              transactionDetails[tx.hash]?.gasUsed || tx.gasUsed
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Gas 价格 */}
+                        <div className="col-span-2">
+                          <label className="text-xs text-gray-400 block mb-1">Gas 价格</label>
+                          <div className="text-sm text-white font-mono">
+                            {formatEnhancedGasPrice(transactionDetails[tx.hash]?.gasPrice || tx.gasPrice)}
+                          </div>
+                        </div>
+
+                        {/* 交易索引 */}
+                        {transactionDetails[tx.hash]?.transactionIndex !== undefined && (
+                          <div>
+                            <label className="text-xs text-gray-400 block mb-1">交易索引</label>
+                            <div className="text-sm text-white">
+                              {transactionDetails[tx.hash].transactionIndex}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 方法签名 */}
+                        {(tx.methodId || transactionDetails[tx.hash]?.methodId) && (
+                          <div className="col-span-2">
+                            <label className="text-xs text-gray-400 block mb-1">方法签名</label>
+                            <div className="text-sm text-white font-mono">
+                              {transactionDetails[tx.hash]?.methodId || tx.methodId}
+                            </div>
+                            {(tx.methodName || transactionDetails[tx.hash]?.methodName) && (
+                              <div className="text-xs text-yellow-400 mt-1">
+                                {transactionDetails[tx.hash]?.methodName || tx.methodName}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center space-x-3 pt-3 border-t border-gray-600">
                         {currentNetwork && (
