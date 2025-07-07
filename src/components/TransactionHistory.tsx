@@ -285,24 +285,6 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
     }
   };
 
-  // 格式化Gas价格显示
-  const formatGasPrice = (gasPrice: string) => {
-    try {
-      const price = parseFloat(gasPrice);
-      if (price === 0) return "0 Gwei";
-
-      // 如果价格很小，显示更多小数位
-      if (price < 0.001) {
-        return `${price.toFixed(9)} Gwei`;
-      } else if (price < 1) {
-        return `${price.toFixed(6)} Gwei`;
-      } else {
-        return `${price.toFixed(2)} Gwei`;
-      }
-    } catch {
-      return `${gasPrice} Gwei`;
-    }
-  };
 
   // 增强的Gas价格显示（包含原生货币和Gwei）
   const formatEnhancedGasPrice = (gasPrice: string) => {
@@ -946,6 +928,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                                 logs={transactionLogs[tx.hash] || []}
                                 logCount={transactionDetails[tx.hash].logCount}
                                 isLoading={loadingLogs[tx.hash]}
+                                error={logErrors[tx.hash]}
                                 onLoadLogs={() => loadTransactionLogs(tx.hash)}
                               />
                             )}
@@ -1285,11 +1268,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                         </div>
 
                         {/* 交易索引 */}
-                        {transactionDetails[tx.hash]?.transactionIndex !== undefined && (
+                        {transactionDetails[tx.hash]?.index !== undefined && (
                           <div>
                             <label className="text-xs text-gray-400 block mb-1">交易索引</label>
                             <div className="text-sm text-white">
-                              {transactionDetails[tx.hash].transactionIndex}
+                              {transactionDetails[tx.hash].index}
                             </div>
                           </div>
                         )}
@@ -1316,6 +1299,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                               logs={transactionLogs[tx.hash] || []}
                               logCount={transactionDetails[tx.hash].logCount}
                               isLoading={loadingLogs[tx.hash]}
+                              error={logErrors[tx.hash]}
                               onLoadLogs={() => loadTransactionLogs(tx.hash)}
                             />
                           </div>

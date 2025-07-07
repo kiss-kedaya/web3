@@ -78,16 +78,17 @@ export interface WalletBalance {
   }>;
 }
 
+// 交易日志接口
 export interface TransactionLog {
   address: string;
   topics: string[];
   data: string;
-  blockNumber: number;
-  transactionHash: string;
-  transactionIndex: number;
-  blockHash: string;
-  logIndex: number;
-  removed: boolean;
+  blockNumber?: number;
+  transactionHash?: string;
+  transactionIndex?: number;
+  blockHash?: string;
+  logIndex?: number;
+  removed?: boolean;
 }
 
 export interface TransactionHistory {
@@ -119,19 +120,6 @@ export interface TransactionHistory {
   // OKX API 特有字段
   fee?: number; // 手续费
   realValue?: number; // 实际价值变化
-}
-
-// 交易日志接口
-export interface TransactionLog {
-  address: string;
-  topics: string[];
-  data: string;
-  blockNumber?: number;
-  transactionHash?: string;
-  transactionIndex?: number;
-  blockHash?: string;
-  logIndex?: number;
-  removed?: boolean;
 }
 
 // 日志显示格式类型

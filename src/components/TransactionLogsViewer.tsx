@@ -7,6 +7,7 @@ interface TransactionLogsViewerProps {
   logs: TransactionLog[];
   logCount: number;
   isLoading?: boolean;
+  error?: string;
   onLoadLogs?: () => void;
   className?: string;
 }
@@ -15,6 +16,7 @@ export const TransactionLogsViewer: React.FC<TransactionLogsViewerProps> = ({
   logs,
   logCount,
   isLoading = false,
+  error,
   onLoadLogs,
   className = ''
 }) => {
@@ -203,7 +205,11 @@ export const TransactionLogsViewer: React.FC<TransactionLogsViewerProps> = ({
           </div>
 
           {/* 日志列表 */}
-          {logs.length > 0 ? (
+          {error ? (
+            <div className="text-sm text-red-400 text-center py-4 bg-red-900/20 border border-red-700 rounded-md">
+              {error}
+            </div>
+          ) : logs.length > 0 ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {logs.map((log, index) => renderLogContent(log, index))}
             </div>
